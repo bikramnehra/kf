@@ -17,7 +17,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	build "github.com/knative/build/pkg/apis/build/v1alpha1"
+	build "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
@@ -67,7 +67,7 @@ func (status *SourceStatus) MarkBuildNotOwned(name string) {
 
 // PropagateBuildStatus copies fields from the Build status to Space
 // and updates the readiness based on the current phase.
-func (status *SourceStatus) PropagateBuildStatus(build *build.Build) {
+func (status *SourceStatus) PropagateBuildStatus(build *build.TaskRun) {
 
 	if build == nil {
 		return
@@ -80,7 +80,7 @@ func (status *SourceStatus) PropagateBuildStatus(build *build.Build) {
 		if condition.Type == "Succeeded" {
 			switch condition.Status {
 			case corev1.ConditionTrue:
-				status.Image = GetBuildArg(build, BuildArgImage)
+				status.Image = GetBuildParams(build, BuildArgImage)
 
 				status.manage().MarkTrue(SourceConditionBuildSucceeded)
 			case corev1.ConditionFalse:
@@ -92,8 +92,9 @@ func (status *SourceStatus) PropagateBuildStatus(build *build.Build) {
 	}
 }
 
-func GetBuildArg(b *build.Build, key string) string {
-	for _, arg := range b.Spec.Template.Arguments {
+//GetBuildParams gets build parameters
+func GetBuildParams(b *build.TaskRun, key string) string {
+	for _, arg := range b.Spec.Inputs.Params {
 		if arg.Name == key {
 			return arg.Value
 		}
