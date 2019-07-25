@@ -22,8 +22,8 @@ import (
 	time "time"
 
 	versioned "github.com/google/kf/pkg/client/build/clientset/versioned"
-	build "github.com/google/kf/pkg/client/build/informers/externalversions/build"
 	internalinterfaces "github.com/google/kf/pkg/client/build/informers/externalversions/internalinterfaces"
+	pipeline "github.com/google/kf/pkg/client/build/informers/externalversions/pipeline"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -170,9 +170,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Build() build.Interface
+	Tekton() pipeline.Interface
 }
 
-func (f *sharedInformerFactory) Build() build.Interface {
-	return build.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Tekton() pipeline.Interface {
+	return pipeline.New(f, f.namespace, f.tweakListOptions)
 }

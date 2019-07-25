@@ -16,9 +16,8 @@ package resources
 
 import (
 	"github.com/google/kf/pkg/apis/kf/v1alpha1"
-	build "github.com/knative/build/pkg/apis/build/v1alpha1"
 	"github.com/knative/serving/pkg/resources"
-	corev1 "k8s.io/api/core/v1"
+	build "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/kmeta"
 )
@@ -34,54 +33,99 @@ func BuildName(source *v1alpha1.Source) string {
 	return source.Name
 }
 
-func makeContainerImageBuild(source *v1alpha1.Source) (*build.Build, error) {
-	return &build.Build{
-		ObjectMeta: makeObjectMeta(source),
-		Spec: build.BuildSpec{
-			ServiceAccountName: source.Spec.ServiceAccount,
-			Template: &build.TemplateInstantiationSpec{
-				Name: containerImageTemplate,
-				Kind: "ClusterBuildTemplate",
-				Arguments: []build.ArgumentSpec{
-					{
-						Name:  v1alpha1.BuildArgImage,
-						Value: source.Spec.ContainerImage.Image,
-					},
-				},
+// func makeContainerImageBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
+// 	buildName := BuildName(source)
+
+// 	args := []build.ArgumentSpec{
+// 		{
+// 			Name:  v1alpha1.BuildArgImage,
+// 			Value: source.Spec.ContainerImage.Image,
+// 		},
+// 	}
+
+// 	return &build.TaskRun{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      buildName,
+// 			Namespace: source.Namespace,
+// 			OwnerReferences: []metav1.OwnerReference{
+// 				*kmeta.NewControllerRef(source),
+// 			},
+// 			// Copy labels from the parent
+// 			Labels: resources.UnionMaps(
+// 				source.GetLabels(), map[string]string{
+// 					managedByLabel: "kf",
+// 				}),
+// 		},
+// 		Spec: build.TaskRunSpec{
+// 			Inputs: build.TaskRunInputs{
+// 				Resources: source.Spec.,
+// 				}
+// 			},
+// 		},
+// 	}, nil
+// }
+
+func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
+	buildName := BuildName(source)
+	appImageName := AppImageName(source)
+	imageDestination := JoinRepositoryImage(source.Spec.BuildpackBuild.Registry, appImageName)
+
+	buildSource := []build.TaskResourceBinding{
+		{
+			ResourceRef: build.PipelineResourceRef{
+				Name: source.Spec.ContainerImage.Image,
+			},
+			ResourceSpec: &build.PipelineResourceSpec{
+				Type: build.PipelineResourceTypeImage,
 			},
 		},
-	}, nil
-}
+	}
 
-func makeBuildpackBuild(source *v1alpha1.Source) (*build.Build, error) {
-	return &build.Build{
-		ObjectMeta: makeObjectMeta(source),
-		Spec: build.BuildSpec{
-			Source: &build.SourceSpec{
-				Custom: &corev1.Container{
-					Image: source.Spec.BuildpackBuild.Source,
-				},
+	buildOutput := []build.TaskResourceBinding{
+		{
+			ResourceSpec: &build.PipelineResourceSpec{
+				Type: build.PipelineResourceTypeImage,
 			},
-			ServiceAccountName: source.Spec.ServiceAccount,
-			Template: &build.TemplateInstantiationSpec{
-				Name: buildpackBuildTemplate,
-				Kind: "ClusterBuildTemplate",
-				Arguments: []build.ArgumentSpec{
-					{
-						Name:  v1alpha1.BuildArgImage,
-						Value: source.Spec.BuildpackBuild.Image,
-					},
-					{
-						Name:  v1alpha1.BuildArgBuildpackBuilder,
-						Value: source.Spec.BuildpackBuild.BuildpackBuilder,
-					},
-					{
-						Name:  v1alpha1.BuildArgBuildpack,
-						Value: source.Spec.BuildpackBuild.Buildpack,
-					},
-				},
-				Env: source.Spec.BuildpackBuild.Env,
+		},
+	}
+
+	params := []build.Param{
+		{
+			Name:  v1alpha1.BuildArgImage,
+			Value: imageDestination,
+		},
+		{
+			Name:  v1alpha1.BuildArgBuildpackBuilder,
+			Value: source.Spec.BuildpackBuild.BuildpackBuilder,
+		},
+		{
+			Name:  v1alpha1.BuildArgBuildpack,
+			Value: source.Spec.BuildpackBuild.Buildpack,
+		},
+	}
+
+	return &build.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildName,
+			Namespace: source.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*kmeta.NewControllerRef(source),
 			},
+			// Copy labels from the parent
+			Labels: resources.UnionMaps(
+				source.GetLabels(), map[string]string{
+					managedByLabel: "kf",
+				}),
+		},
+		Spec: build.TaskRunSpec{
+			Inputs: build.TaskRunInputs{
+				Resources: buildSource,
+				Params:    params,
+			},
+			Outputs: build.TaskRunOutputs{
+				Resources: buildOutput,
+			},
+			ServiceAccount: source.Spec.ServiceAccount,
 		},
 	}, nil
 }
@@ -102,9 +146,9 @@ func makeObjectMeta(source *v1alpha1.Source) metav1.ObjectMeta {
 }
 
 // MakeBuild creates a Build for a Source.
-func MakeBuild(source *v1alpha1.Source) (*build.Build, error) {
+func MakeBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 	if source.Spec.IsContainerBuild() {
-		return makeContainerImageBuild(source)
+		return nil, nil
 	} else {
 		return makeBuildpackBuild(source)
 	}

@@ -19,7 +19,7 @@ import (
 
 	kfv1alpha1 "github.com/google/kf/pkg/apis/kf/v1alpha1"
 	buildclient "github.com/google/kf/pkg/client/build/injection/client"
-	buildinformer "github.com/google/kf/pkg/client/build/injection/informers/build/v1alpha1/build"
+	buildinformer "github.com/google/kf/pkg/client/build/injection/informers/pipeline/v1alpha1/taskrun"
 	sourceinformer "github.com/google/kf/pkg/client/injection/informers/kf/v1alpha1/source"
 	"github.com/google/kf/pkg/reconciler"
 	"k8s.io/client-go/tools/cache"
@@ -41,7 +41,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		Base:         reconciler.NewBase(ctx, cmw),
 		sourceLister: sourceInformer.Lister(),
 		buildLister:  buildInformer.Lister(),
-		buildClient:  buildClient.BuildV1alpha1(),
+		buildClient:  buildClient.TektonV1alpha1(),
 	}
 
 	impl := controller.NewImpl(c, logger, "sources")

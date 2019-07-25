@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"io"
 
-	build "github.com/knative/build/pkg/apis/build/v1alpha1"
-	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
+	apis "github.com/knative/pkg/apis"
+	build "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,8 +29,8 @@ import (
 // Complete will be set to true if the build has completed (or doesn't exist).
 // Error will be set if the build completed with an error (or doesn't exist).
 // A successful result is one that completed and error is nil.
-func BuildStatus(build build.Build) (finished bool, err error) {
-	condition := build.Status.GetCondition(duckv1alpha1.ConditionSucceeded)
+func BuildStatus(build build.TaskRun) (finished bool, err error) {
+	condition := build.Status.GetCondition(apis.ConditionSucceeded)
 	if condition == nil {
 		// no success condition means the build hasn't propigated yet
 		return false, nil
@@ -53,45 +53,38 @@ func BuildStatus(build build.Build) (finished bool, err error) {
 // users.
 func PopulateTemplate(
 	name string,
-	template build.TemplateInstantiationSpec,
+	TaskRunInputs build.Inputs,
 	opts ...CreateOption,
-) *build.Build {
+) *build.TaskRun {
 	cfg := CreateOptionDefaults().Extend(opts).toConfig()
 
 	// XXX: other types of sources are supported, notably git.
 	// Adding in flags for git could be a quick win to support git-ops
 	// workflows.
-	var source *build.SourceSpec
-	if cfg.SourceImage != "" {
-		source = &build.SourceSpec{
-			Custom: &corev1.Container{
-				Image: cfg.SourceImage,
-			},
-		}
-	}
+	// var source *build.SourceSpec
+	// if cfg.SourceImage != "" {
+	// 	source = &build.SourceSpec{
+	// 		Custom: &corev1.Container{
+	// 			Image: cfg.SourceImage,
+	// 		},
+	// 	}
+	// }
 
-	args := []build.ArgumentSpec{}
-	for k, v := range cfg.Args {
-		args = append(args, build.ArgumentSpec{
-			Name:  k,
-			Value: v,
-		})
-	}
+	// args := []build.Inputs{}
+	// for k, v := range cfg.Args {
+	// 	args = append(args, build.Inputs.Params{
+	// 		Name:  k,
+	// 		Value: v,
+	// 	})
+	// }
 
-	out := &build.Build{
-		Spec: build.BuildSpec{
-			ServiceAccountName: cfg.ServiceAccount,
-			Source:             source,
-			Template: &build.TemplateInstantiationSpec{
-				Name:      template.Name,
-				Kind:      template.Kind,
-				Env:       cfg.Env,
-				Arguments: args,
-			},
+	out := &build.TaskRun{
+		Spec: build.TaskRunSpec{
+			ServiceAccount: cfg.ServiceAccount,
 		},
 	}
 	out.APIVersion = build.SchemeGroupVersion.String()
-	out.Kind = "Build"
+	out.Kind = "TaskRun"
 	out.Name = name
 	out.Namespace = cfg.Namespace
 

@@ -20,8 +20,8 @@ import (
 	"reflect"
 
 	"github.com/google/kf/pkg/apis/kf/v1alpha1"
-	buildclient "github.com/google/kf/pkg/client/build/clientset/versioned/typed/build/v1alpha1"
-	buildlisters "github.com/google/kf/pkg/client/build/listers/build/v1alpha1"
+	buildclient "github.com/google/kf/pkg/client/build/clientset/versioned/typed/pipeline/v1alpha1"
+	buildlisters "github.com/google/kf/pkg/client/build/listers/pipeline/v1alpha1"
 	kflisters "github.com/google/kf/pkg/client/listers/kf/v1alpha1"
 	"github.com/google/kf/pkg/reconciler"
 	"github.com/google/kf/pkg/reconciler/source/resources"
@@ -38,11 +38,11 @@ import (
 type Reconciler struct {
 	*reconciler.Base
 
-	buildClient buildclient.BuildV1alpha1Interface
+	buildClient buildclient.TektonV1alpha1Interface
 
 	// listers index properties about resources
 	sourceLister kflisters.SourceLister
-	buildLister  buildlisters.BuildLister
+	buildLister  buildlisters.TaskRunLister
 }
 
 // Check that our Reconciler implements controller.Reconciler
@@ -128,9 +128,9 @@ func (r *Reconciler) ApplyChanges(ctx context.Context, source *v1alpha1.Source) 
 			return err
 		}
 
-		actual, err := r.buildLister.Builds(source.Namespace).Get(desired.Name)
+		actual, err := r.buildLister.TaskRuns(source.Namespace).Get(desired.Name)
 		if errors.IsNotFound(err) {
-			actual, err = r.buildClient.Builds(desired.Namespace).Create(desired)
+			actual, err = r.buildClient.TaskRuns(desired.Namespace).Create(desired)
 			if err != nil {
 				return err
 			}
