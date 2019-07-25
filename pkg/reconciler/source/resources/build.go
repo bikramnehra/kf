@@ -70,37 +70,38 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 	appImageName := AppImageName(source)
 	imageDestination := JoinRepositoryImage(source.Spec.BuildpackBuild.Registry, appImageName)
 
+	taskRef := &build.TaskRef{
+		Name: "buildpack",
+		Kind: "ClusterTask",
+	}
+
 	buildSource := []build.TaskResourceBinding{
 		{
-			ResourceRef: build.PipelineResourceRef{
-				Name: source.Spec.ContainerImage.Image,
-			},
+			Name: "source",
 			ResourceSpec: &build.PipelineResourceSpec{
 				Type: build.PipelineResourceTypeImage,
+				Params: []build.Param{
+					{
+						Name:  "url",
+						Value: source.Spec.ContainerImage.Image,
+					},
+				},
 			},
 		},
 	}
 
 	buildOutput := []build.TaskResourceBinding{
 		{
+			Name: "image",
 			ResourceSpec: &build.PipelineResourceSpec{
 				Type: build.PipelineResourceTypeImage,
+				Params: []build.Param{
+					{
+						Name:  "url",
+						Value: imageDestination,
+					},
+				},
 			},
-		},
-	}
-
-	params := []build.Param{
-		{
-			Name:  v1alpha1.BuildArgImage,
-			Value: imageDestination,
-		},
-		{
-			Name:  v1alpha1.BuildArgBuildpackBuilder,
-			Value: source.Spec.BuildpackBuild.BuildpackBuilder,
-		},
-		{
-			Name:  v1alpha1.BuildArgBuildpack,
-			Value: source.Spec.BuildpackBuild.Buildpack,
 		},
 	}
 
@@ -118,9 +119,9 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 				}),
 		},
 		Spec: build.TaskRunSpec{
+			TaskRef: taskRef,
 			Inputs: build.TaskRunInputs{
 				Resources: buildSource,
-				Params:    params,
 			},
 			Outputs: build.TaskRunOutputs{
 				Resources: buildOutput,
