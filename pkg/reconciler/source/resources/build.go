@@ -33,37 +33,51 @@ func BuildName(source *v1alpha1.Source) string {
 	return source.Name
 }
 
-// func makeContainerImageBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
-// 	buildName := BuildName(source)
+func makeContainerImageBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
+	buildName := BuildName(source)
 
-// 	args := []build.ArgumentSpec{
-// 		{
-// 			Name:  v1alpha1.BuildArgImage,
-// 			Value: source.Spec.ContainerImage.Image,
-// 		},
-// 	}
+	taskRef := &build.TaskRef{
+		Name: "container",
+		Kind: "ClusterTask",
+	}
 
-// 	return &build.TaskRun{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      buildName,
-// 			Namespace: source.Namespace,
-// 			OwnerReferences: []metav1.OwnerReference{
-// 				*kmeta.NewControllerRef(source),
-// 			},
-// 			// Copy labels from the parent
-// 			Labels: resources.UnionMaps(
-// 				source.GetLabels(), map[string]string{
-// 					managedByLabel: "kf",
-// 				}),
-// 		},
-// 		Spec: build.TaskRunSpec{
-// 			Inputs: build.TaskRunInputs{
-// 				Resources: source.Spec.,
-// 				}
-// 			},
-// 		},
-// 	}, nil
-// }
+	buildOutput := []build.TaskResourceBinding{
+		{
+			Name: "OUTPUT_IMAGE",
+			ResourceSpec: &build.PipelineResourceSpec{
+				Type: build.PipelineResourceTypeImage,
+				Params: []build.Param{
+					{
+						Name:  "url",
+						Value: source.Spec.ContainerImage.Image,
+					},
+				},
+			},
+		},
+	}
+
+	return &build.TaskRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildName,
+			Namespace: source.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*kmeta.NewControllerRef(source),
+			},
+			// Copy labels from the parent
+			Labels: resources.UnionMaps(
+				source.GetLabels(), map[string]string{
+					managedByLabel: "kf",
+				}),
+		},
+		Spec: build.TaskRunSpec{
+			TaskRef: taskRef,
+			Outputs: build.TaskRunOutputs{
+				Resources: buildOutput,
+			},
+			ServiceAccount: source.Spec.ServiceAccount,
+		},
+	}, nil
+}
 
 func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 	buildName := BuildName(source)
@@ -75,7 +89,7 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 		Kind: "ClusterTask",
 	}
 
-	buildSource := []build.TaskResourceBinding{
+	buildInput := []build.TaskResourceBinding{
 		{
 			Name: "INPUT_IMAGE",
 			ResourceSpec: &build.PipelineResourceSpec{
@@ -121,7 +135,7 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 		Spec: build.TaskRunSpec{
 			TaskRef: taskRef,
 			Inputs: build.TaskRunInputs{
-				Resources: buildSource,
+				Resources: buildInput,
 			},
 			Outputs: build.TaskRunOutputs{
 				Resources: buildOutput,
@@ -149,7 +163,7 @@ func makeObjectMeta(source *v1alpha1.Source) metav1.ObjectMeta {
 // MakeBuild creates a Build for a Source.
 func MakeBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 	if source.Spec.IsContainerBuild() {
-		return nil, nil
+		return makeContainerImageBuild(source)
 	} else {
 		return makeBuildpackBuild(source)
 	}

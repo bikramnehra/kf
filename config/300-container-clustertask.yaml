@@ -17,19 +17,20 @@ kind: ClusterTask
 metadata:
   name: container
 spec:
-  inputs:
-    params:
-      - name: IMAGE
-        description: The image to run.
-    steps:
-    - args:
-      - -c
-      - |
-        echo noop
-      command:
-      - /bin/sh
-      image: alpine
-      imagePullPolicy: Always
-      name: noop
-      resources: {}
-      volumeMounts: []
+  outputs:
+    resources:
+    - name: OUTPUT_IMAGE
+      type: image
+    
+  steps:
+  - args:
+    - -c
+    - |
+      echo noop
+    command:
+    - /bin/sh
+    image: alpine
+    imagePullPolicy: Always
+    name: noop
+    resources: {}
+    volumeMounts: []

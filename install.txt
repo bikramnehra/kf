@@ -11,6 +11,8 @@ curl -L https://raw.githubusercontent.com/knative/serving/v0.5.2/third_party/ist
   | sed 's/LoadBalancer/NodePort/' \
   | kubectl apply --filename -
 
+kubectl label namespace default istio-injection=enabled
+
 # Install Knative Serving
 kubectl apply --selector knative.dev/crd-install=true \
 --filename https://github.com/knative/serving/releases/download/v0.7.0/serving.yaml

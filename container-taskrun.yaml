@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  name: example-run
+spec:
+  taskRef:
+    name: container
+    kind: ClusterTask
+  outputs:
+    resources:
+    - name: OUTPUT_IMAGE
+      resourceSpec:
+        type: image
+        params:
+        - name: url
+          value: docker.io/jones2026/go-hello-world
