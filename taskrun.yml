@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  name: example-run
+spec:
+  taskRef:
+    name: buildpack
+    kind: ClusterTask
+  inputs:
+    resources:
+    - name: INPUT_IMAGE
+      resourceSpec:
+        type: image
+        params:
+        - name: url
+          value: docker.io/bikramnehra/src-demo-helloworld:1564090824105354664
+  outputs:
+    resources:
+    - name: OUTPUT_IMAGE
+      resourceSpec:
+        type: image
+        params:
+        - name: url
+          value: docker.io/bikramnehra/built-demo-helloworld

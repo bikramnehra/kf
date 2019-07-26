@@ -77,7 +77,7 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 
 	buildSource := []build.TaskResourceBinding{
 		{
-			Name: "source",
+			Name: "INPUT_IMAGE",
 			ResourceSpec: &build.PipelineResourceSpec{
 				Type: build.PipelineResourceTypeImage,
 				Params: []build.Param{
@@ -92,7 +92,7 @@ func makeBuildpackBuild(source *v1alpha1.Source) (*build.TaskRun, error) {
 
 	buildOutput := []build.TaskResourceBinding{
 		{
-			Name: "image",
+			Name: "OUTPUT_IMAGE",
 			ResourceSpec: &build.PipelineResourceSpec{
 				Type: build.PipelineResourceTypeImage,
 				Params: []build.Param{
